@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏒 AZ Havířov Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --az-blue:   #0057a8;
+      --az-blue2:  #003e7e;
+      --az-black:  #0d0d0f;
+      --az-dark:   #111318;
+      --az-panel:  #16191f;
+      --az-border: #1e2a3a;
+      --az-white:  #f0f6ff;
+      --az-muted:  #6a7f9a;
+      --az-accent: #00aaff;
+      --az-line:   rgba(0,87,168,0.3);
+      --font-h:    'Black Han Sans', sans-serif;
+      --font-b:    'Barlow Condensed', sans-serif;
+      --font-m:    'Share Tech Mono', monospace;
+    }
+
+    body {
+      background: var(--az-black);
+      color: var(--az-white);
+      font-family: var(--font-b);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* dark rink background with blue glow */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0,87,168,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 30% at 50% 0%,   rgba(0,87,168,0.08) 0%, transparent 60%),
+        repeating-linear-gradient(0deg,   transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
+        repeating-linear-gradient(90deg,  transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* blue center line */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; bottom: 0; left: 50%;
+      width: 3px;
+      background: rgba(0,87,168,0.2);
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 660px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── HEADER / SCOREBOARD ── */
+    header {
+      background: var(--az-panel);
+      border: 2px solid var(--az-blue);
+      border-radius: 4px;
+      overflow: hidden;
+      animation: dropIn 0.5s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    .scoreboard-top {
+      background: var(--az-blue);
+      padding: 5px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .scoreboard-top span {
+      font-family: var(--font-m);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-m);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+    }
+    .live-dot::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 8px #fff;
+      animation: blink 1.2s infinite;
+    }
+
+    .scoreboard-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 22px;
+    }
+
+    .team { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .team-name {
+      font-family: var(--font-h);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      color: var(--az-white);
+      text-transform: uppercase;
+    }
+
+    .score-block { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .score {
+      font-family: var(--font-h);
+      font-size: 2.8rem;
+      color: var(--az-white);
+      text-shadow: 0 0 20px rgba(0,170,255,0.5);
+      letter-spacing: 0.1em;
+      line-height: 1;
+    }
+    .period {
+      font-family: var(--font-m);
+      font-size: 0.6rem;
+      color: var(--az-muted);
+      letter-spacing: 0.12em;
+    }
+
+    /* ── PLAYER CARDS ── */
+    .player-cards {
+      display: flex;
+      gap: 10px;
+      animation: dropIn 0.5s 0.08s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    .player-card {
+      flex: 1;
+      background: var(--az-panel);
+      border: 2px solid var(--az-blue);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .player-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--az-accent), transparent);
+      opacity: 0.5;
+    }
+
+    .portrait-svg { flex-shrink: 0; }
+
+    .card-info { flex: 1; min-width: 0; }
+    .card-number {
+      font-family: var(--font-h);
+      font-size: 1.6rem;
+      color: var(--az-accent);
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(0,170,255,0.4);
+    }
+    .card-name {
+      font-family: var(--font-h);
+      font-size: 0.78rem;
+      color: var(--az-white);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .card-pos {
+      font-family: var(--font-m);
+      font-size: 0.6rem;
+      color: var(--az-muted);
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+    }
+    .card-flag { font-size: 1.1rem; margin-left: auto; flex-shrink: 0; }
+
+    /* ── RINK SCENE ── */
+    .rink-scene {
+      width: 100%;
+      background: linear-gradient(180deg, #0a1220 0%, #0d1628 60%, #080e18 100%);
+      border: 2px solid var(--az-border);
+      border-radius: 4px;
+      overflow: hidden;
+      height: 130px;
+      animation: dropIn 0.5s 0.12s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    /* player animations */
+    @keyframes celebrateLeft  { 0%{transform:translateY(0) rotate(0)} 30%{transform:translateY(-14px) rotate(-15deg)} 60%{transform:translateY(-8px) rotate(10deg)} 100%{transform:translateY(0) rotate(0)} }
+    @keyframes celebrateRight { 0%{transform:translateY(0) rotate(0)} 30%{transform:translateY(-14px) rotate(15deg)} 60%{transform:translateY(-8px) rotate(-10deg)} 100%{transform:translateY(0) rotate(0)} }
+    @keyframes skateLeft  { 0%{transform:translateX(0)} 50%{transform:translateX(8px)} 100%{transform:translateX(0)} }
+    @keyframes skateRight { 0%{transform:translateX(0)} 50%{transform:translateX(-8px)} 100%{transform:translateX(0)} }
+
+    /* ── CHAT ── */
+    #chat {
+      background: linear-gradient(180deg, #0e1520 0%, #090d14 100%);
+      border: 2px solid var(--az-border);
+      border-radius: 4px;
+      padding: 18px;
+      height: 380px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+      position: relative;
+      animation: dropIn 0.5s 0.15s cubic-bezier(.22,1,.36,1) both;
+    }
+    #chat::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,87,168,0.08);
+      pointer-events: none;
+    }
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--az-blue2); border-radius: 99px; }
+
+    .msg { display: flex; flex-direction: column; max-width: 80%; animation: puckIn 0.22s ease both; position: relative; z-index: 1; }
+    .msg.bot  { align-self: flex-start; }
+    .msg.user { align-self: flex-end; animation-name: puckInRight; }
+
+    .msg-label {
+      font-family: var(--font-m);
+      font-size: 0.6rem;
+      color: var(--az-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 3px;
+    }
+    .msg.user .msg-label { text-align: right; color: rgba(0,170,255,0.7); }
+
+    .bubble {
+      padding: 9px 14px;
+      font-family: var(--font-b);
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.45;
+      word-break: break-word;
+      border-radius: 3px;
+    }
+    .msg.bot  .bubble { background: #141c2a; border-left: 3px solid var(--az-blue); color: var(--az-white); }
+    .msg.user .bubble { background: #0a1828; border-right: 3px solid var(--az-accent); color: var(--az-accent); }
+
+    .sys-msg {
+      align-self: center;
+      font-family: var(--font-m);
+      font-size: 0.65rem;
+      color: var(--az-muted);
+      border: 1px solid var(--az-border);
+      padding: 3px 14px;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      position: relative; z-index: 1;
+    }
+
+    /* ── LEARN BOX ── */
+    .learn-box {
+      background: #0a1420;
+      border: 2px solid var(--az-blue2);
+      border-radius: 4px;
+      padding: 12px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      animation: dropIn 0.3s ease both;
+    }
+    .learn-box.visible { display: flex; }
+    .learn-box p { font-family: var(--font-m); font-size: 0.72rem; color: var(--az-accent); letter-spacing: 0.05em; }
+
+    .learn-row { display: flex; gap: 8px; }
+    .learn-row input {
+      flex: 1;
+      background: var(--az-dark);
+      border: 1px solid var(--az-blue2);
+      color: var(--az-white);
+      padding: 9px 12px;
+      border-radius: 3px;
+      font-family: var(--font-m);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .learn-row input:focus { border-color: var(--az-accent); }
+
+    /* ── INPUT AREA ── */
+    .input-area {
+      display: flex;
+      gap: 10px;
+      animation: dropIn 0.5s 0.2s cubic-bezier(.22,1,.36,1) both;
+    }
+    #userInput {
+      flex: 1;
+      background: var(--az-panel);
+      border: 2px solid var(--az-border);
+      color: var(--az-white);
+      padding: 13px 18px;
+      border-radius: 3px;
+      font-family: var(--font-b);
+      font-weight: 600;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #userInput::placeholder { color: var(--az-muted); font-weight: 400; }
+    #userInput:focus {
+      border-color: var(--az-blue);
+      box-shadow: 0 0 0 3px rgba(0,87,168,0.2);
+    }
+
+    .send-btn {
+      background: var(--az-blue);
+      color: white;
+      border: none;
+      padding: 13px 22px;
+      border-radius: 3px;
+      font-family: var(--font-h);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .send-btn:hover  { background: var(--az-blue2); }
+    .send-btn:active { transform: scale(0.97); }
+
+    .learn-btn {
+      background: var(--az-blue2);
+      color: var(--az-accent);
+      border: 1px solid var(--az-blue);
+      padding: 9px 16px;
+      border-radius: 3px;
+      font-family: var(--font-h);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.05em;
+    }
+    .learn-btn:hover { background: var(--az-blue); }
+
+    /* ── HINTS ── */
+    .hints-label {
+      font-family: var(--font-m);
+      font-size: 0.6rem;
+      color: var(--az-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      animation: dropIn 0.5s 0.3s ease both;
+      opacity: 0; animation-fill-mode: both;
+    }
+    .hints {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      animation: dropIn 0.5s 0.35s ease both;
+      opacity: 0; animation-fill-mode: both;
+    }
+    .hint {
+      font-family: var(--font-b);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--az-muted);
+      border: 1px solid var(--az-border);
+      padding: 5px 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .hint:hover {
+      color: var(--az-accent);
+      border-color: var(--az-blue);
+      background: rgba(0,87,168,0.1);
+    }
+    .hint::before { content: '⚫ '; font-size: 0.65rem; }
+
+    /* ── AZ WATERMARK ── */
+    .az-watermark {
+      position: fixed;
+      bottom: 16px; right: 20px;
+      font-family: var(--font-h);
+      font-size: 2.5rem;
+      color: rgba(0,87,168,0.06);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+      z-index: 0;
+      user-select: none;
+    }
+
+    /* ── GOAL FLASH ── */
+    .goal-flash {
+      position: fixed; inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+    }
+    .goal-flash.show { animation: goalAnim 1.2s ease forwards; }
+    .goal-text {
+      font-family: var(--font-h);
+      font-size: clamp(3rem, 12vw, 7rem);
+      color: var(--az-white);
+      text-shadow: 0 0 30px var(--az-blue), 0 0 80px rgba(0,87,168,0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes puckIn {
+      from { opacity: 0; transform: translateX(-8px) scale(0.97); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes puckInRight {
+      from { opacity: 0; transform: translateX(8px) scale(0.97); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    @keyframes goalAnim {
+      0%   { opacity: 0; transform: scale(0.5); }
+      20%  { opacity: 1; transform: scale(1.1); }
+      70%  { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="az-watermark">AZ</div>
+
+<!-- GOAL FLASH -->
+<div class="goal-flash" id="goalFlash">
+  <div class="goal-text">GÓÓL! 🚨</div>
+</div>
+
+<div class="wrapper">
+
+  <!-- SCOREBOARD -->
+  <header>
+    <div class="scoreboard-top">
+      <span>⚫🔵⚪ Gascontrol Aréna · Havířov</span>
+      <div class="live-dot">LIVE</div>
+      <span id="clock">00:00</span>
+    </div>
+    <div class="scoreboard-main">
+      <div class="team">
+        <!-- AZ logo SVG (stylized) -->
+        <svg width="46" height="40" viewBox="0 0 46 40" xmlns="http://www.w3.org/2000/svg">
+          <!-- mining hammer symbol (mlátek & želízko) simplified -->
+          <rect x="5" y="18" width="36" height="5" rx="2" fill="#0057a8"/>
+          <rect x="20" y="4"  width="6"  height="32" rx="2" fill="#0057a8"/>
+          <!-- AZ text -->
+          <text x="23" y="26" text-anchor="middle" font-size="14" fill="white" font-family="'Black Han Sans',sans-serif" font-weight="900">AZ</text>
+        </svg>
+        <div class="team-name">Chatbot</div>
+      </div>
+      <div class="score-block">
+        <div class="score"><span id="botScore">0</span> : <span id="userScore">0</span></div>
+        <div class="period" id="period">1. TŘETINA</div>
+      </div>
+      <div class="team">
+        <!-- player icon in AZ colors -->
+        <svg width="36" height="40" viewBox="0 0 36 40" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="18" cy="10" rx="9" ry="9" fill="#0057a8"/>
+          <rect x="8" y="18" width="20" height="16" rx="4" fill="#0057a8"/>
+          <line x1="18" y1="18" x2="18" y2="34" stroke="white" stroke-width="1.5" opacity="0.4"/>
+        </svg>
+        <div class="team-name">Hráč</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PLAYER CARDS -->
+  <div class="player-cards">
+
+    <!-- JURAJ SLAFKOVSKÝ – dresy AZ Havířov: modré -->
+    <div class="player-card">
+      <svg class="portrait-svg" width="64" height="76" viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg">
+        <!-- AZ jersey: dark blue + white stripes -->
+        <rect x="6" y="48" width="52" height="28" rx="5" fill="#0d1f3c"/>
+        <rect x="6" y="56" width="52" height="3" fill="white" opacity="0.5"/>
+        <rect x="6" y="61" width="52" height="3" fill="#0057a8" opacity="0.7"/>
+        <!-- mining symbol on shoulder -->
+        <text x="12" y="72" font-size="8" fill="#0057a8" opacity="0.8">⛏</text>
+        <text x="32" y="72" text-anchor="middle" font-size="12" fill="white" font-family="Arial Black,sans-serif" font-weight="900">20</text>
+        <!-- HAVÍŘOV on chest -->
+        <text x="32" y="55" text-anchor="middle" font-size="5" fill="white" font-family="'Barlow Condensed',sans-serif" letter-spacing="1" opacity="0.6">HAVÍŘOV</text>
+        <!-- neck -->
+        <rect x="26" y="41" width="12" height="10" rx="3" fill="#d4956a"/>
+        <!-- head -->
+        <ellipse cx="32" cy="28" rx="19" ry="22" fill="#d4956a"/>
+        <ellipse cx="32" cy="42" rx="13" ry="6" fill="#c07a50" opacity="0.5"/>
+        <!-- dark hair, voluminous -->
+        <ellipse cx="32" cy="11" rx="19" ry="10" fill="#2a1a0a"/>
+        <rect x="13" y="10" width="38" height="13" rx="4" fill="#2a1a0a"/>
+        <ellipse cx="14" cy="22" rx="5" ry="9" fill="#2a1a0a"/>
+        <ellipse cx="50" cy="22" rx="5" ry="9" fill="#2a1a0a"/>
+        <!-- ears -->
+        <ellipse cx="13" cy="30" rx="4" ry="5" fill="#c07a50"/>
+        <ellipse cx="51" cy="30" rx="4" ry="5" fill="#c07a50"/>
+        <!-- eyebrows thick -->
+        <rect x="17" y="21" width="11" height="3" rx="1.5" fill="#1a0e04" transform="rotate(-4,22,22)"/>
+        <rect x="36" y="21" width="11" height="3" rx="1.5" fill="#1a0e04" transform="rotate(4,42,22)"/>
+        <!-- eyes brown intense -->
+        <ellipse cx="22" cy="28" rx="5" ry="4.5" fill="white"/>
+        <ellipse cx="42" cy="28" rx="5" ry="4.5" fill="white"/>
+        <ellipse cx="22" cy="28.5" rx="3.2" ry="3.2" fill="#4a2800"/>
+        <ellipse cx="42" cy="28.5" rx="3.2" ry="3.2" fill="#4a2800"/>
+        <circle cx="22" cy="28" r="1.5" fill="#111"/>
+        <circle cx="42" cy="28" r="1.5" fill="#111"/>
+        <circle cx="23.5" cy="26.5" r="1" fill="white" opacity="0.8"/>
+        <circle cx="43.5" cy="26.5" r="1" fill="white" opacity="0.8"/>
+        <!-- nose -->
+        <ellipse cx="32" cy="34" rx="3.5" ry="2.5" fill="#c07a50"/>
+        <circle cx="29.5" cy="34.5" r="1.8" fill="#b06a40"/>
+        <circle cx="34.5" cy="34.5" r="1.8" fill="#b06a40"/>
+        <!-- mouth -->
+        <path d="M 25 40 Q 32 44 39 40" stroke="#8a4020" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <!-- shoulder pads AZ blue -->
+        <ellipse cx="10" cy="52" rx="9" ry="5" fill="#0057a8"/>
+        <ellipse cx="54" cy="52" rx="9" ry="5" fill="#0057a8"/>
+      </svg>
+      <div class="card-info">
+        <div class="card-number">#20</div>
+        <div class="card-name">Slafkovský</div>
+        <div class="card-pos">LW · AZ HVŘ</div>
+      </div>
+      <div class="card-flag">🇸🇰</div>
+    </div>
+
+    <!-- MARTIN NEČAS – AZ Havířov dres -->
+    <div class="player-card">
+      <svg class="portrait-svg" width="72" height="90" viewBox="0 0 72 90" xmlns="http://www.w3.org/2000/svg">
+        <!-- AZ jersey: dark blue, white stripes, mining symbol -->
+        <rect x="4" y="58" width="64" height="32" rx="5" fill="#0d1f3c"/>
+        <rect x="4" y="66" width="64" height="3" fill="white" opacity="0.5"/>
+        <rect x="4" y="71" width="64" height="2.5" fill="#0057a8" opacity="0.8"/>
+        <!-- HAVÍŘOV chest text -->
+        <text x="36" y="65" text-anchor="middle" font-size="5.5" fill="white" font-family="'Barlow Condensed',sans-serif" letter-spacing="1.2" opacity="0.7">HAVÍŘOV</text>
+        <!-- mining hammer on chest -->
+        <text x="20" y="83" font-size="9" fill="#0057a8" opacity="0.9">⛏</text>
+        <!-- number 88 -->
+        <text x="44" y="84" text-anchor="middle" font-size="14" fill="white" font-family="Arial Black,sans-serif" font-weight="900">88</text>
+        <!-- gold chain -->
+        <path d="M 25 61 Q 36 68 47 61" stroke="#d4a017" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.9"/>
+        <circle cx="36" cy="66" r="1.5" fill="#d4a017" opacity="0.9"/>
+        <!-- neck -->
+        <rect x="28" y="51" width="16" height="10" rx="3" fill="#d09070"/>
+        <!-- head -->
+        <ellipse cx="36" cy="33" rx="20" ry="24" fill="#d09070"/>
+        <path d="M 18 40 Q 20 54 36 57 Q 52 54 54 40" fill="#c07858" opacity="0.35"/>
+        <!-- AZ black helmet -->
+        <ellipse cx="36" cy="17" rx="21" ry="16" fill="#111"/>
+        <rect x="15" y="16" width="42" height="16" rx="2" fill="#111"/>
+        <!-- blue stripe on helmet (AZ colors) -->
+        <rect x="33" y="3" width="5" height="28" rx="2" fill="#0057a8" opacity="0.8"/>
+        <rect x="15" y="28" width="42" height="4" rx="2" fill="#0a0a0a"/>
+        <!-- helmet shine -->
+        <ellipse cx="27" cy="9" rx="8" ry="4" fill="white" opacity="0.06"/>
+        <!-- BAUER text -->
+        <text x="31" y="14" text-anchor="middle" font-size="5" fill="#888" font-family="Arial,sans-serif" font-weight="bold" letter-spacing="0.5">BAUER</text>
+        <!-- 88 on helmet -->
+        <text x="55" y="16" text-anchor="middle" font-size="6" fill="white" font-family="Arial Black,sans-serif" font-weight="900" opacity="0.9">88</text>
+        <!-- chin strap -->
+        <path d="M 16 31 Q 14 40 18 46" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M 56 31 Q 58 40 54 46" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M 18 46 Q 36 50 54 46" stroke="#111" stroke-width="2" fill="none"/>
+        <!-- visor transparent -->
+        <path d="M 16 30 Q 36 36 56 30 L 56 35 Q 36 42 16 35 Z" fill="#88bbdd" opacity="0.16"/>
+        <path d="M 16 30 Q 36 36 56 30" stroke="#aaddff" stroke-width="1" fill="none" opacity="0.45"/>
+        <!-- ears -->
+        <ellipse cx="16" cy="37" rx="3.5" ry="4.5" fill="#c07858"/>
+        <ellipse cx="56" cy="37" rx="3.5" ry="4.5" fill="#c07858"/>
+        <!-- eyebrows -->
+        <path d="M 22 35 Q 27 33 32 34.5" stroke="#7a4820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 40 34.5 Q 45 33 50 35" stroke="#7a4820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <!-- eyes blue-green -->
+        <ellipse cx="27" cy="39" rx="5.5" ry="4.5" fill="white"/>
+        <ellipse cx="45" cy="39" rx="5.5" ry="4.5" fill="white"/>
+        <ellipse cx="27" cy="39.5" rx="3.5" ry="3.5" fill="#4a8a7a"/>
+        <ellipse cx="45" cy="39.5" rx="3.5" ry="3.5" fill="#4a8a7a"/>
+        <circle cx="27" cy="39.5" r="1.8" fill="#0d1a10"/>
+        <circle cx="45" cy="39.5" r="1.8" fill="#0d1a10"/>
+        <circle cx="28.5" cy="37.8" r="1.2" fill="white" opacity="0.9"/>
+        <circle cx="46.5" cy="37.8" r="1.2" fill="white" opacity="0.9"/>
+        <path d="M 22 37 Q 27 35.5 32 37" stroke="#8a5030" stroke-width="0.8" fill="none"/>
+        <path d="M 40 37 Q 45 35.5 50 37" stroke="#8a5030" stroke-width="0.8" fill="none"/>
+        <!-- nose -->
+        <path d="M 34 43 L 33 48 Q 36 50 39 48 L 38 43" fill="#c07858" opacity="0.5"/>
+        <path d="M 33 48 Q 30 50 30 48" stroke="#a06040" stroke-width="1.2" fill="none"/>
+        <path d="M 39 48 Q 42 50 42 48" stroke="#a06040" stroke-width="1.2" fill="none"/>
+        <!-- mouth slightly open -->
+        <path d="M 28 53 Q 36 56 44 53" stroke="#8a4828" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M 31 53.2 Q 36 54.5 41 53.2" stroke="#5a2810" stroke-width="0.8" fill="none"/>
+        <!-- shoulder pads AZ blue -->
+        <ellipse cx="10" cy="63" rx="10" ry="6" fill="#0057a8"/>
+        <ellipse cx="62" cy="63" rx="10" ry="6" fill="#0057a8"/>
+        <path d="M 10 58 Q 4 62 4 68" stroke="white" stroke-width="1" fill="none" opacity="0.3"/>
+        <path d="M 62 58 Q 68 62 68 68" stroke="white" stroke-width="1" fill="none" opacity="0.3"/>
+      </svg>
+      <div class="card-info">
+        <div class="card-number">#88</div>
+        <div class="card-name">Nečas</div>
+        <div class="card-pos">C · AZ HVŘ</div>
+      </div>
+      <div class="card-flag">🇨🇿</div>
+    </div>
+
+  </div>
+
+  <!-- RINK SCENE -->
+  <div class="rink-scene">
+    <svg viewBox="0 0 660 130" xmlns="http://www.w3.org/2000/svg">
+      <!-- ice lines in AZ blue/white -->
+      <line x1="200" y1="0" x2="200" y2="130" stroke="#0057a8" stroke-width="3" opacity="0.5"/>
+      <line x1="460" y1="0" x2="460" y2="130" stroke="#0057a8" stroke-width="3" opacity="0.5"/>
+      <line x1="330" y1="0" x2="330" y2="130" stroke="white"   stroke-width="3" opacity="0.25"/>
+      <circle cx="330" cy="90" r="38" fill="none" stroke="white" stroke-width="1.5" opacity="0.12"/>
+      <circle cx="330" cy="90" r="4"  fill="white" opacity="0.15"/>
+      <!-- goals -->
+      <rect x="14" y="70" width="22" height="36" rx="2" fill="none" stroke="#e0e0e0" stroke-width="2" opacity="0.6"/>
+      <line x1="14" y1="70" x2="14" y2="106" stroke="#0057a8" stroke-width="3" opacity="0.9"/>
+      <rect x="624" y="70" width="22" height="36" rx="2" fill="none" stroke="#e0e0e0" stroke-width="2" opacity="0.6"/>
+      <line x1="646" y1="70" x2="646" y2="106" stroke="#0057a8" stroke-width="3" opacity="0.9"/>
+
+      <!-- AZ watermark on ice -->
+      <text x="330" y="100" text-anchor="middle" font-size="28" fill="white" font-family="'Black Han Sans',sans-serif" opacity="0.04" letter-spacing="4">AZ HAVÍŘOV</text>
+
+      <!-- BOT player – AZ blue jersey -->
+      <g id="playerBot" transform="translate(108,25)">
+        <rect x="-10" y="74" width="10" height="4" rx="2" fill="#aaa"/>
+        <rect x="3"   y="74" width="10" height="4" rx="2" fill="#aaa"/>
+        <rect x="-8"  y="56" width="8"  height="20" rx="3" fill="#0d1f3c"/>
+        <rect x="3"   y="56" width="8"  height="20" rx="3" fill="#0d1f3c"/>
+        <rect x="-13" y="30" width="29" height="28" rx="5" fill="#0d1f3c"/>
+        <rect x="-13" y="38" width="29" height="3" fill="white" opacity="0.3"/>
+        <text x="1.5" y="52" text-anchor="middle" font-size="10" fill="white" font-family="Arial Black,sans-serif" font-weight="900">20</text>
+        <ellipse cx="1.5" cy="20" rx="14" ry="13" fill="#0a0a0a"/>
+        <rect x="-14" y="20" width="31" height="7" rx="2" fill="#0a0a0a"/>
+        <rect x="-1"  y="4"  width="5"  height="24" rx="2" fill="#0057a8" opacity="0.8"/>
+        <line x1="-7" y1="21" x2="-7" y2="30" stroke="#999" stroke-width="1.5"/>
+        <line x1="0"  y1="21" x2="0"  y2="30" stroke="#999" stroke-width="1.5"/>
+        <line x1="7"  y1="21" x2="7"  y2="30" stroke="#999" stroke-width="1.5"/>
+        <circle cx="-4.5" cy="16" r="2.8" fill="white"/>
+        <circle cx="7.5"  cy="16" r="2.8" fill="white"/>
+        <circle cx="-4"   cy="16.5" r="1.4" fill="#4a2800"/>
+        <circle cx="8"    cy="16.5" r="1.4" fill="#4a2800"/>
+        <rect x="-23" y="32" width="12" height="8" rx="3" fill="#0057a8"/>
+        <ellipse cx="-18" cy="44" rx="8" ry="7" fill="#0d2a52"/>
+        <rect x="14" y="32" width="12" height="8" rx="3" fill="#0057a8"/>
+        <line x1="23" y1="37" x2="42" y2="76" stroke="#8B5E3C" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="40" y1="72" x2="62" y2="79" stroke="#8B5E3C" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse id="puckBot" cx="64" cy="80" rx="7" ry="3.5" fill="#222" stroke="#555" stroke-width="1.2"/>
+      </g>
+
+      <!-- USER player – AZ white jersey -->
+      <g id="playerUser" transform="translate(552,25)">
+        <rect x="-10" y="74" width="10" height="4" rx="2" fill="#aaa"/>
+        <rect x="3"   y="74" width="10" height="4" rx="2" fill="#aaa"/>
+        <rect x="-8"  y="56" width="8"  height="20" rx="3" fill="#dde8f5"/>
+        <rect x="3"   y="56" width="8"  height="20" rx="3" fill="#dde8f5"/>
+        <rect x="-13" y="30" width="29" height="28" rx="5" fill="#dde8f5"/>
+        <rect x="-13" y="38" width="29" height="3" fill="#0057a8" opacity="0.5"/>
+        <text x="1.5" y="52" text-anchor="middle" font-size="10" fill="#0057a8" font-family="Arial Black,sans-serif" font-weight="900">88</text>
+        <ellipse cx="1.5" cy="20" rx="14" ry="13" fill="#0a0a0a"/>
+        <rect x="-14" y="20" width="31" height="7" rx="2" fill="#0a0a0a"/>
+        <rect x="-1"  y="4"  width="5"  height="24" rx="2" fill="#0057a8" opacity="0.8"/>
+        <line x1="-7" y1="21" x2="-7" y2="30" stroke="#999" stroke-width="1.5"/>
+        <line x1="0"  y1="21" x2="0"  y2="30" stroke="#999" stroke-width="1.5"/>
+        <line x1="7"  y1="21" x2="7"  y2="30" stroke="#999" stroke-width="1.5"/>
+        <circle cx="-4.5" cy="16" r="2.8" fill="white"/>
+        <circle cx="7.5"  cy="16" r="2.8" fill="white"/>
+        <circle cx="-4"   cy="16.5" r="1.4" fill="#3a6a9a"/>
+        <circle cx="8"    cy="16.5" r="1.4" fill="#3a6a9a"/>
+        <rect x="-23" y="32" width="12" height="8" rx="3" fill="#dde8f5"/>
+        <ellipse cx="-18" cy="44" rx="8" ry="7" fill="#0057a8"/>
+        <rect x="14" y="32" width="12" height="8" rx="3" fill="#dde8f5"/>
+        <line x1="-20" y1="37" x2="-39" y2="76" stroke="#8B5E3C" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="-37" y1="72" x2="-59" y2="79" stroke="#8B5E3C" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse id="puckUser" cx="-61" cy="80" rx="7" ry="3.5" fill="#222" stroke="#555" stroke-width="1.2"/>
+      </g>
+
+      <!-- crowd -->
+      <g opacity="0.12">
+        <circle cx="55"  cy="10" r="4" fill="#fff"/><circle cx="85"  cy="8"  r="3" fill="#fff"/>
+        <circle cx="125" cy="11" r="4" fill="#fff"/><circle cx="165" cy="7"  r="3" fill="#fff"/>
+        <circle cx="235" cy="10" r="4" fill="#fff"/><circle cx="275" cy="8"  r="3" fill="#fff"/>
+        <circle cx="330" cy="12" r="5" fill="#fff"/><circle cx="385" cy="9"  r="3" fill="#fff"/>
+        <circle cx="425" cy="11" r="4" fill="#fff"/><circle cx="475" cy="8"  r="3" fill="#fff"/>
+        <circle cx="525" cy="10" r="4" fill="#fff"/><circle cx="575" cy="7"  r="3" fill="#fff"/>
+        <circle cx="610" cy="11" r="4" fill="#fff"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat">
+    <div class="sys-msg">⚫ Úvodní buly · Gascontrol Aréna</div>
+    <div class="msg bot">
+      <span class="msg-label">⚫🔵 AZ Chatbot</span>
+      <div class="bubble">Vhazování! My jsme AZet! Napiš cokoliv, nebo <strong>konec</strong> pro sirény. 🚨</div>
+    </div>
+  </div>
+
+  <!-- LEARN BOX -->
+  <div class="learn-box" id="learnBox">
+    <p>🔵 Tečuji střelu… jak mám odpovědět?</p>
+    <div class="learn-row">
+      <input type="text" id="learnInput" placeholder="Tvoje odpověď…"/>
+      <button class="learn-btn" onclick="saveLearn()">NAUČIT SE ⚫</button>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Napiš zprávu a střílej za AZet…" onkeydown="if(event.key==='Enter') send()"/>
+    <button class="send-btn" onclick="send()">🏒 Střelba</button>
+  </div>
+
+  <!-- HINTS -->
+  <div class="hints-label">— rychlé přihrávky za AZ Havířov —</div>
+  <div class="hints">
+    <span class="hint" onclick="sendHint('ahoj')">ahoj</span>
+    <span class="hint" onclick="sendHint('jak se mas')">jak se mas</span>
+    <span class="hint" onclick="sendHint('co delas')">co delas</span>
+    <span class="hint" onclick="sendHint('konec')">konec</span>
+  </div>
+
+</div>
+
+<script>
+  const odpovedi = {
+    "ahoj": "Ahoj, hráči! My jsme AZet! ⚫🔵⚪",
+    "jak se mas": "Skvěle! Chystám se na led v Gascontrol Aréně! 🏒",
+    "co delas": "Povídám si s tebou a hlídám branku za AZ Havířov! 🥅"
+  };
+
+  let pendingKey = null;
+  let botScore = 0, userScore = 0;
+  let seconds = 0, finished = false;
+
+  const chat       = document.getElementById('chat');
+  const userInput  = document.getElementById('userInput');
+  const learnBox   = document.getElementById('learnBox');
+  const learnInput = document.getElementById('learnInput');
+  const clockEl    = document.getElementById('clock');
+  const periodEl   = document.getElementById('period');
+  const goalFlash  = document.getElementById('goalFlash');
+  const playerBot  = document.getElementById('playerBot');
+  const playerUser = document.getElementById('playerUser');
+
+  setInterval(() => {
+    if (finished) return;
+    seconds++;
+    clockEl.textContent = String(Math.floor(seconds/60)).padStart(2,'0') + ':' + String(seconds%60).padStart(2,'0');
+    if (seconds === 1200) periodEl.textContent = '2. TŘETINA';
+    if (seconds === 2400) periodEl.textContent = '3. TŘETINA';
+  }, 1000);
+
+  function animatePlayer(el, type) {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    const anim = type === 'celebrate'
+      ? (el === playerBot ? 'celebrateLeft' : 'celebrateRight')
+      : (el === playerBot ? 'skateLeft'     : 'skateRight');
+    el.style.animation = `${anim} 0.6s ease both`;
+    setTimeout(() => { el.style.animation = ''; }, 700);
+  }
+
+  function showGoal(who) {
+    if (who === 'bot') { botScore++; document.getElementById('botScore').textContent = botScore; animatePlayer(playerBot, 'celebrate'); }
+    else               { userScore++; document.getElementById('userScore').textContent = userScore; animatePlayer(playerUser, 'celebrate'); }
+    goalFlash.classList.remove('show');
+    void goalFlash.offsetWidth;
+    goalFlash.classList.add('show');
+  }
+
+  function addMsg(who, text) {
+    const wrap   = document.createElement('div');
+    wrap.className = `msg ${who}`;
+    const label  = document.createElement('span');
+    label.className = 'msg-label';
+    label.textContent = who === 'bot' ? '⚫🔵 AZ Chatbot' : '⚪🔵 Hráč';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML  = text;
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    chat.appendChild(wrap);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addSys(text) {
+    const el = document.createElement('div');
+    el.className = 'sys-msg';
+    el.textContent = text;
+    chat.appendChild(el);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function send() {
+    const raw = userInput.value.trim();
+    if (!raw) return;
+    const zprava = raw.toLowerCase();
+    addMsg('user', raw);
+    animatePlayer(playerUser, 'skate');
+    userInput.value = '';
+
+    if (zprava === 'konec') {
+      finished = true;
+      setTimeout(() => {
+        addSys('🚨 Finální siréna · Gascontrol Aréna');
+        addMsg('bot', `My jsme AZet! Konečný výsledek: ⚫ ${botScore} — ${userScore} ⚪`);
+        userInput.disabled = true;
+        document.querySelector('.send-btn').disabled = true;
+        document.querySelectorAll('.hint').forEach(h => h.style.pointerEvents = 'none');
+        periodEl.textContent = 'KONEC ZÁPASU';
+      }, 300);
+      return;
+    }
+
+    if (odpovedi[zprava]) {
+      showGoal('bot');
+      setTimeout(() => addMsg('bot', odpovedi[zprava]), 350);
+      return;
+    }
+
+    pendingKey = zprava;
+    setTimeout(() => {
+      addSys('⛸️ AZ Chatbot si není jistý…');
+      learnBox.classList.add('visible');
+      learnInput.focus();
+    }, 300);
+  }
+
+  function saveLearn() {
+    const nova = learnInput.value.trim();
+    if (!nova || !pendingKey) return;
+    odpovedi[pendingKey] = nova;
+    learnBox.classList.remove('visible');
+    learnInput.value = '';
+    showGoal('user');
+    addMsg('bot', 'Naučil jsem se! Góól pro AZet! 🚨⚫🔵⚪');
+    pendingKey = null;
+  }
+
+  learnInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveLearn(); });
+  function sendHint(t) { userInput.value = t; send(); }
+</script>
+</body>
+</html>
